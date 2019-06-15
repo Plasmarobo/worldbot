@@ -13,6 +13,19 @@ let chunk_arguments = function(input)
 	return input.match(/(?:[^\s"]+|"[^"]*")+/g);
 };
 
+let is_dm_channel = function(msg)
+{
+	return (msg.guild === null);
+};
+
+let remove_msg = function(msg)
+{
+	if (msg.channel.type != "dm")
+	{
+		msg.delete(50);
+	}
+};
+
 client.on('ready', () => {
 	console.log(`Server started as ${client.user.tag}`);
 	try {
@@ -24,6 +37,10 @@ client.on('ready', () => {
 });
 
 client.on('message', msg => {
+	if (msg.author.bot)
+	{
+		return;
+	}
 	if (msg.content.startsWith(settings.prefix))
 	{
 		let args = chunk_arguments(msg.content);
@@ -35,6 +52,12 @@ client.on('message', msg => {
 		}
 		console.log(`Command <${args}> from ${msg.author.id}`);
 		handle_command(msg, args[1], args.splice(2));
+	} else if (
+		is_dm_channel(msg) &&
+		has_permission_to_run(msg, [])) {
+		let args = chunk_arguments(msg.content);
+		console.log(`DM command <${args}> from ${msg.author.id}`);
+		handle_command(msg, args[0], args.splice(1));
 	}
 });
 
@@ -51,7 +74,7 @@ let has_permission_to_run = function(msg, restrictions)
 	{
 		return true;
 	}
-	if(msg.member.roles.some(r=>restrictions.includes(r.name)) ) {
+	if(msg.member && msg.member.roles.some(r=>restrictions.includes(r.name)) ) {
 		// has one of the roles
 		return true;
 	} else {
@@ -62,7 +85,6 @@ let has_permission_to_run = function(msg, restrictions)
 
 let parse_id = function(raw)
 {
-	
 	let matches = raw.match(/<[@|#]!?(\d+)>/);
 	if (matches != null && matches.length > 1)
 	{
@@ -111,23 +133,23 @@ let handle_command = function(msg, command, args)
 const command_handlers = {
 	"weather": {
 		handler: function(msg, args) {
-			broadcast([msg.channel.id], "It is currently " + calendar.getweather() + "ing");
-			msg.delete(500);
+			broadcast([msg.channel.id], calendar.getweather());
+			remove_msg(msg);
 		},
 		help: "`weather`\nPrints the current weather in the area"
 	},
 	"setweather": {
 		handler: function(msg, args) {
 			broadcast(whitelist, calendar.setweather(args[0]));
-			msg.delete(500);
+			remove_msg(msg);
 		},
 		help: "`setweather <name>`\nSets the current weather in the area",
 		restrict_to: settings.admin_roles
 	},
 	"addweather": {
 		handler: function(msg, args) {
-			broadcast([msg.channel.id], calendar.addweather(args[0], args[1], args[2], args[3]));
-			msg.delete(500);
+			broadcast([msg.channel.id], calendar.addweather(args[0], args[1], args[2], args[3], args[4], args[5]));
+			remove_msg(msg);
 		},
 		help: "`addweather <name> <short-desc> <change-text> <seasons>`\nAdds a type of weather\nname: short name for the weather, used to select it\nshort-desc: brief description of weather\nchange-text:text to broadcast on select\nseasons: comma-seperated list of seasons",
 		restrict_to: settings.admin_roles
@@ -135,7 +157,7 @@ const command_handlers = {
 	"delweather": {
 		handler: function(msg, args) {
 			broadcast([msg.channel.id], calendar.delweather(args[0]));
-			msg.delete(500);
+			remove_msg(msg);
 		},
 		help: "`delweather <name>\nDelete a weather",
 		restrict_to: settings.admin_roles
@@ -143,7 +165,7 @@ const command_handlers = {
 	"listweather": {
 		handler: function(msg, args) {
 			broadcast([msg.channel.id], calendar.listweather());
-			msg.delete(500);
+			remove_msg(msg);
 		},
 		help: "`listweather`\nLists possible weather",
 		restrict_to: settings.admin_roles
@@ -151,21 +173,21 @@ const command_handlers = {
 	"date": {
 		handler: function(msg, args) {
 			broadcast([msg.channel.id], calendar.description());
-			msg.delete(500);
+			remove_msg(msg);
 		},
 		help: "`date`\nPrints the current date in the world"
 	},
 	"time": {
 		handler: function(msg, args) {
 			broadcast([msg.channel.id], "It is " + calendar.time_str());
-			msg.delete(500);
+			remove_msg(msg);
 		},
 		help: "`time`\nPrints the current time in the world"
 	},
 	"offsettime": {
 		handler: function(msg, args) {
 			broadcast([msg.channel.id], calendar.set_offset(parseInt(args[0])));
-			msg.delete(500);
+			remove_msg(msg);
 		},
 		help: "`offsettime <seconds>`\nSets offset to UTC in seconds",
 		restrict_to: settings.admin_roles
@@ -186,9 +208,8 @@ const command_handlers = {
 				year = parseInt(args[1]);
 			}
 			calendar.set(day, year);
-			calendar.save();
 			broadcast(whitelist, calendar.description());
-			msg.delete(500);
+			remove_msg(msg);
 		},
 		help: "`setdate <date format>`\nSets the current day and year in either `month day year` or `day/365 year` format\nDay: # of days to set (since 0)\nYear: # year to set (since 0)",
 		restrict_to: settings.admin_roles
@@ -200,25 +221,33 @@ const command_handlers = {
 			{
 				days = parseInt(args[0]);
 			}
+			console.log(`Advancing ${days} days`);
 			calendar.advance(days);
-			calendar.save();
 			broadcast(whitelist, calendar.description());
-			msg.delete(500);
+			remove_msg(msg);
 		},
 		help: "`tick <# days>`\nAdvances time\nDays: # of days to tick (1 if omitted)",
+		restrict_to: settings.admin_roles
+	},
+	"toggleautotick": {
+		handler: function(msg, args) {
+			broadcast([msg.channel.id], "Auto tick set to " + calendar.toggle_auto(args[0]));
+			remove_msg(msg);
+		},
+		help: "`toggleautotick <on|off|true|false>`\nTurns automatic advancement of time on or off\nArgs: Optional, no args toggles",
 		restrict_to: settings.admin_roles
 	},
 	"season" : {
 		handler: function(msg, args) {
 			broadcast([msg.channel.id], "It is " + calendar.getseason() + ".");
-			msg.delete(500);
+			remove_msg(msg);
 		},
 		help: "`season`\nGet's current season"
 	},
 	"randweather": {
 		handler: function(msg, args) {
 			broadcast(whitelist, calendar.randweather());
-			msg.delete(500);
+			remove_msg(msg);
 		},
 		help: "`randweather`\nRandomize the weather, based on season",
 		restrict_to: settings.admin_roles
@@ -236,7 +265,7 @@ const command_handlers = {
 			}
 			console.log(whitelist);
 			fs.writeFileSync("./whitelist.json", JSON.stringify(whitelist, null, 2));
-			msg.delete(500);
+			remove_msg(msg);
 		},
 		help: "`whitelist <channel>`\nEnables the bot on a channel\nchannel: channel id (`#channelname`)",
 		restrict_to: settings.admin_roles
@@ -254,7 +283,7 @@ const command_handlers = {
 				}
 			}
 			fs.writeFileSync("./whitelist.json", JSON.stringify(whitelist, null, 2));
-			msg.delete(500);
+			remove_msg(msg);
 		},
 		help: "`blacklist <channel>`\nDisables the bot on a channel\nchannel: channel id (`#channelname`)",
 		restrict_to: settings.admin_roles
@@ -264,7 +293,7 @@ const command_handlers = {
 		{
 			settings.admin_roles.push(args[0]);
 			fs.writeFileSync("./settings.json", JSON.stringify(settings, null, 2));
-			msg.delete(500);
+			remove_msg(msg);
 		},
 		help: "`add_admin_role <\@rolename>`",
 		restrict_to: settings.admin_roles
@@ -274,7 +303,7 @@ const command_handlers = {
 		{
 			settings.splice(settings.admin_roles.findIndex(args[0]), 1);
 			fs.writeFileSync("./settings.json", JSON.stringify(settings, null, 2));
-			msg.delete(500);
+			remove_msg(msg);
 		},
 		help: "`del_admin_role <\@rolename>`",
 		restrict_to: settings.admin_roles
@@ -285,21 +314,32 @@ const command_handlers = {
 			{
 				let helptext = command_handlers[args[0]].help;
 				reply(msg.author, helptext);
+				remove_msg(msg);
 			} else {
 				let text = "Possible commands, try `help <command>`\n```";
 				for(let handler in command_handlers) {
 					text += handler + "\n";
 				}
 				reply(msg.author, text + "```");
+				remove_msg(msg);
 			}
 		},
 		help: "`help <command>`\nPrints the help text for `command`"
 	},
 	"restart": {
 		handler: function(msg, args) {
-			process.exit();
+			broadcast([msg.channel.id], "It's been an honor.    o7");
+			remove_msg(msg);
+			setTimeout(() => process.exit(), 1000);
 		},
 		help: "`restart`\nExits the bot process (systemd will restart)"
+	},
+	"version": {
+		handler: function(msg, args) {
+			broadcast([msg.channel.id], "I am Worldbot MK I");
+			remove_msg(msg);
+		},
+		help: "`version`\nPrints Version"
 	}
 };
 

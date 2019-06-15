@@ -11,7 +11,7 @@ let ordinal_suffix = function(i) {
 		return i + "nd";
 	}
 	if (j == 3 && k != 13) {
-		return i + "rd"l
+		return i + "rd";
 	}
 	return i + "th";
 };
@@ -26,12 +26,12 @@ let timebot_month = function(index, name, common_name)
 
 timebot_month.prototype.full_description = function(day)
 {
-	return "It is the " + ordinal_suffix(day + 1) + " of " + this.common_name + ", the month of *" + this.name + "*";
+	return "It is the " + ordinal_suffix(day) + " of " + this.common_name + ", the month of *" + this.name + "*";
 };
 
 timebot_month.prototype.description = function(day)
 {
-	return ordinal_suffix(day + 1) + " of " + this.name;
+	return ordinal_suffix(day) + " of " + this.name;
 };
 
 let timebot_calendar = function(day, year)
@@ -65,6 +65,23 @@ let timebot_calendar = function(day, year)
 	this.offset = 0;
 	this.weather_list = {};
 	this.current_weather = "";
+	this.auto = false;
+	this.lastTime = new Date().getUTCDay();
+	this.timer = setInterval(() => {
+		if (this.lastTime != new Date().getUTCDay())
+		{
+			if (this.auto)
+			{
+				this.advance(1);
+			}
+			this.lastTime = new Date().getUTCDay();
+		}
+	}, 60000);
+};
+
+timebot_calendar.prototype.get_day = function()
+{
+	return (this.day % 30) + 1;
 };
 
 timebot_calendar.prototype.load = function()
@@ -76,6 +93,7 @@ timebot_calendar.prototype.load = function()
 	this.offset = persist.offset;
 	this.current_weather = persist.current_weather;
 	this.weather_list = persist.weather_list;
+	this.auto = persist.auto;
 };
 
 timebot_calendar.prototype.save = function()
@@ -85,9 +103,30 @@ timebot_calendar.prototype.save = function()
 		day: this.day,
 		offset: this.offset,
 		current_weather: this.current_weather,
-		weather_list: this.weather_list
+		weather_list: this.weather_list,
+		auto: this.auto
 	};
 	fs.writeFileSync("./timebot_persist.json", JSON.stringify(persist, null, 2));
+};
+
+timebot_calendar.prototype.toggle_auto = function(toggle)
+{
+	if(typeof(toggle) != "undefined")
+	{
+		toggle = toggle.toLowerCase();
+	}
+
+	if (toggle == "true" || toggle == "on")
+	{
+		this.auto = true;
+	} else if (toggle == "false" || toggle == "off") {
+		this.auto = false;
+	} else {
+		this.auto = !this.auto;
+	}
+
+	this.save();
+	return "Auto tick set to " + this.auto ? "on" : "off";
 };
 
 timebot_calendar.prototype.getseason = function()
@@ -127,41 +166,48 @@ timebot_calendar.prototype.time_str = function()
 
 timebot_calendar.prototype.set = function(day, year)
 {
+	console.log(`Setting day ${day}, year ${year}`);
 	if (typeof(year) != "undefined")
 	{
 		this.year = year;
 	}
-	if (day < 1)
-	{
-		day = 1;
-	}
-	this.day = (day-1) % 365;
+	this.day = (day) % 365;
 	this.month_index = Math.floor(this.day / 30) % this.months.length;
+	this.save();
 };
 
 timebot_calendar.prototype.advance = function(days)
 {
+	if (days < 1)
+	{
+		days = 1;
+	}
+	console.log(`Advance ${days} (${this.day + days})`);
 	let year_adv = Math.floor((this.day + days) / 365);
-
+	console.log(this.day, days, this.day + days);
 	this.set(this.day + days, this.year + year_adv);
 };
 
 timebot_calendar.prototype.description = function()
 {
-	console.log(this.month_index, this.months);
-	let desc = this.months[this.month_index].full_description((this.day % 30));
+	let desc = this.months[this.month_index].full_description(this.get_day());
 	desc += ". It is the year " + this.year + ".";
 	return desc;
 };
 
-timebot_calendar.prototype.addweather = function(name, desc, change, seasons)
+timebot_calendar.prototype.addweather = function(name, desc, change, seasons, color, image)
 {
 	let seasons_list = seasons.split(',');
 	this.weather_list[name] = {
 		"desc": desc,
 		"change": change,
-		"seasons": seasons_list
+		"seasons": seasons_list,
+		"color": color || 0
 	};
+	if (typeof(image) != "undefined")
+	{
+		this.weather_list[name].image = image;
+	}
 	this.save();
 	return "Added " + name + ".";
 };
@@ -201,7 +247,23 @@ timebot_calendar.prototype.randweather = function()
 
 timebot_calendar.prototype.getweather = function()
 {
-	return this.weather_list[this.current_weather].desc;
+	let weather = this.weather_list[this.current_weather];
+	if (weather.hasOwnProperty("image"))
+	{
+		let embed = {
+			"embed": {
+				"title": "The weather",
+				"description": weather.desc,
+				"thumbnail": {
+					"url": weather.image
+				},
+				"color" : weather.hasOwnProperty("color") ? parseInt(weather.color) : 0
+			}
+		};
+		return embed;
+	} else {
+		return "The weather is " + weather.desc;
+	}
 };
 
 timebot_calendar.prototype.listweather = function()

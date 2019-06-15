@@ -1,0 +1,54 @@
+{
+  "year": 227,
+  "day": 194,
+  "offset": 0,
+  "current_weather": "rain",
+  "weather_list": {
+    "rain": {
+      "desc": "gentle rain",
+      "change": "Rain begins to fall softly.",
+      "seasons": [
+        "spring",
+        "summer",
+        "winter",
+        "fall"
+      ]
+    },
+    "sun": {
+      "desc": "sun",
+      "change": "it has become sunny",
+      "seasons": [
+        "spring",
+        "summer",
+        "winter",
+        "fall"
+      ]
+    },
+    "heavy rain": {
+      "desc": "hard rain",
+      "change": "Rain pelts from the sky violently",
+      "seasons": [
+        "spring",
+        "summer",
+        "winter",
+        "fall"
+      ]
+    },
+    "snow": {
+      "desc": "snow",
+      "change": "Snow drifts from the heavens",
+      "seasons": [
+        "winter"
+      ]
+    },
+    "hail": {
+      "desc": "hail",
+      "change": "\"chunks of ice rain from the sky\"",
+      "seasons": [
+        "winter",
+        "fall"
+      ]
+    }
+  },
+  "auto": true
+}
