@@ -4,8 +4,8 @@
   "description": "A bot to manage time and weather, and broadcast information",
   "main": "index.js",
   "scripts": {
-      "dev": "nodemon index.js",
-      "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
@@ -14,7 +14,7 @@
   "author": "Austen Higgins-Cassidy",
   "license": "MIT",
   "devDependencies": {
-    "discord.js": "^11.5.0",
+    "discord.js": "^11.5.1",
     "nodemon": "^1.19.1"
   }
 }

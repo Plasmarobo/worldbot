@@ -67,6 +67,7 @@ let timebot_calendar = function(day, year)
 	this.current_weather = "";
 	this.auto = false;
 	this.lastTime = new Date().getUTCDay();
+	console.log(`Startup ${this.lastTime}`);
 	this.timer = setInterval(() => {
 		if (this.lastTime != new Date().getUTCDay())
 		{
@@ -75,6 +76,7 @@ let timebot_calendar = function(day, year)
 				this.advance(1);
 			}
 			this.lastTime = new Date().getUTCDay();
+			console.log(`New day ${this.lastTime}`);
 		}
 	}, 60000);
 };
@@ -159,9 +161,9 @@ timebot_calendar.prototype.time_str = function()
 	let d = new Date();
 	d.setUTCDate(this.time());
 	return "Current time: " +
-		String(d.getHours()).padStart(2, '0') +
+		String(d.getUTCHours()).padStart(2, '0') +
 		":" +
-		String(d.getMinutes()).padStart(2, '0');
+		String(d.getUTCMinutes()).padStart(2, '0');
 };
 
 timebot_calendar.prototype.set = function(day, year)

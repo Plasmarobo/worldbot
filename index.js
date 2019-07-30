@@ -2,7 +2,7 @@ const settings = require('./settings.json');
 
 const Discord = require('discord.js');
 const fs = require('fs');
-const client = new Discord.Client();
+const client = new Discord.Client({autoReconnect:true});
 
 const timebot = require('./timebot_calendar.js');
 let calendar = new timebot.calendar();

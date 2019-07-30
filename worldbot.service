@@ -1,0 +1,16 @@
+[Unit]
+Description=Worldbot Example Server
+
+[Service]
+ExecStart=/home/time/timebot/start.sh
+WorkingDirectory=/home/time/timebot
+Restart=always
+RestartSec=6
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=worldbot
+Environment=NODE_ENV=production PORT=1337
+
+[Install]
+WantedBy=multi-user.target
+
