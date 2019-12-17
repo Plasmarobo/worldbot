@@ -1,1 +1,5 @@
 node_modules/
+google_credentials.json
+google_token.json
+whitelist.json
+timebot_persist.json

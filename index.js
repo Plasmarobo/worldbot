@@ -7,10 +7,15 @@ const client = new Discord.Client({autoReconnect:true});
 const timebot = require('./timebot_calendar.js');
 let calendar = new timebot.calendar();
 
+const votelord = require('./votelord.js');
+let vote_system = new votelord.votelord();
+
 let chunk_arguments = function(input)
 {
 	// Chunks arguments by space, unless between quotes
 	return input.match(/(?:[^\s"]+|"[^"]*")+/g);
+	// Alternative:
+	//keywords = keywords.match(/\w+|"(?:\\"|[^"])+"/g);
 };
 
 let is_dm_channel = function(msg)
@@ -131,6 +136,13 @@ let handle_command = function(msg, command, args)
 };
 
 const command_handlers = {
+	"echo" : {
+		handler: function(msg, args) {
+			//reply(msg.author, args.join(" "));
+			broadcast([msg.channel.id], args.join(" "));
+		},
+		help: "`echo <msg>`\nSend a message from the bot"
+	},
 	"weather": {
 		handler: function(msg, args) {
 			broadcast([msg.channel.id], calendar.getweather());
@@ -340,6 +352,13 @@ const command_handlers = {
 			remove_msg(msg);
 		},
 		help: "`version`\nPrints Version"
+	},
+	"ballot": {
+		handler: function(msg, args) {
+			broadcast([msg.channel.id], vote_system.handle(msg, args));
+			remove_msg(msg);
+		},
+		help: "`vote <cmd>`\nRun a command in the vote system"
 	}
 };
 
